@@ -17,9 +17,10 @@ func customizedRegister(r *server.Hertz) {
 	root := r.Group("/", handler.AccountIDMiddleware())
 	{
 		root.POST("/logout", handler.Logout)
-		authGroup := r.Group("/", handler.AccountStatusMiddleware())
+
+		authGroup := root.Group("/", handler.AccountStatusMiddleware())
 		{
-			authGroup.POST("password/update", handler.UpdatePassword)
+			authGroup.POST("/password/update", handler.UpdatePassword)
 		}
 	}
 }

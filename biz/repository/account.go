@@ -12,6 +12,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/google/uuid"
+	rediscli "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -61,11 +62,14 @@ func UpdateAccountPassword(
 		Transaction(func(tx *gorm.DB) error {
 			// update firstly can block the login request
 			if err := tx.Model(&po.Account{}).
-				Update("salt", newSalt).
-				Update("password", newPassword).
 				Where("account_id", accountID).
 				Where("salt", oldSalt).
 				Where("password", oldPassword).
+				Updates(
+					map[string]interface{}{
+						"salt":     newSalt,
+						"password": newPassword,
+					}).
 				Error; err != nil {
 				hlog.CtxErrorf(ctx, "create account err: %v", err)
 				return err
@@ -142,7 +146,7 @@ func GetAccountByAccountID(ctx context.Context, accountID string) (*domain.Accou
 
 func deleteAccountInCache(ctx context.Context, accountID string) error {
 	if _, err := redis.GetRedisClient().
-		HDel(ctx, accountInfoKey(accountID)).
+		Del(ctx, accountInfoKey(accountID)).
 		Result(); err != nil {
 		hlog.CtxErrorf(ctx, "del account cache err: %v", err)
 		return err
@@ -158,18 +162,26 @@ func getAccountFromCache(ctx context.Context, accountID string) *domain.Account 
 		return nil
 	}
 
+	accountID, ok1 := mapper["account_id"]
+	username, ok2 := mapper["username"]
+	salt, ok3 := mapper["salt"]
+	password, ok4 := mapper["password"]
+	status, ok5 := mapper["status"]
+	if !(ok1 && ok2 && ok3 && ok4 && ok5) {
+		return nil
+	}
+
 	expirationDate, err := time.Parse("2006-01-02", mapper["expiration_date"])
 	if err != nil {
-		hlog.CtxWarnf(ctx, "parse expiration date err: %v, err")
-		expirationDate = time.Date(2099, 12, 31, 0, 0, 0, 0, time.Local)
+		return nil
 	}
 
 	return &domain.Account{
-		AccountID:      mapper["account_id"],
-		Username:       mapper["username"],
-		Salt:           mapper["salt"],
-		Password:       mapper["password"],
-		Status:         mapper["status"],
+		AccountID:      accountID,
+		Username:       username,
+		Salt:           salt,
+		Password:       password,
+		Status:         status,
 		ExpirationDate: expirationDate,
 	}
 }
@@ -204,10 +216,16 @@ func AppendSessionInAccount(ctx context.Context, accountID, sessionID string) er
 
 	sessionList = append(sessionList, sessionID)
 
+	data, err := json.Marshal(sessionList)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "json marshal err: %v", err)
+		return err
+	}
+
 	if _, err := redis.GetRedisClient().
 		HSet(
 			ctx, accountInfoKey(accountID),
-			"session_list", sessionList,
+			"session_list", string(data),
 		).
 		Result(); err != nil {
 		hlog.CtxErrorf(ctx, "set session list err: %v", err)
@@ -222,6 +240,9 @@ func GetSessionList(ctx context.Context, accountID string) ([]string, error) {
 		HGet(ctx, accountInfoKey(accountID), fieldSessionList).
 		Bytes()
 	if err != nil {
+		if err == rediscli.Nil {
+			return nil, nil
+		}
 		hlog.CtxErrorf(ctx, "get session list err: %v", err)
 		return nil, err
 	}
@@ -248,10 +269,16 @@ func RemoveSession(ctx context.Context, accountID, sessionID string) error {
 		}
 	}
 
+	data, err := json.Marshal(newSessionList)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "json marshal err: %v", err)
+		return err
+	}
+
 	if _, err := redis.GetRedisClient().
 		HSet(
 			ctx, accountInfoKey(accountID),
-			"session_list", newSessionList,
+			"session_list", string(data),
 		).
 		Result(); err != nil {
 		hlog.CtxErrorf(ctx, "set session list err: %v", err)

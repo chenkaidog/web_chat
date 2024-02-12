@@ -12,7 +12,7 @@ import (
 
 const (
 	sessionName        = "session_id"
-	sessionStorePrefix = "web_chat_"
+	sessionStorePrefix = "web_chat_session_"
 )
 
 func SessionMiddleware() app.HandlerFunc {
@@ -21,7 +21,7 @@ func SessionMiddleware() app.HandlerFunc {
 		sessions.Options{
 			Path:     "/",
 			Domain:   "",
-			MaxAge:   86400,
+			MaxAge:   7 * 24 * 3600,
 			Secure:   false, // https not ready
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,

@@ -2,7 +2,6 @@ package redis
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/redis/go-redis/v9"
 )
-
 
 type loggerHook struct {
 }
@@ -33,16 +31,10 @@ func (*loggerHook) ProcessHook(next redis.ProcessHook) redis.ProcessHook {
 
 		costTime := float64(time.Since(startTime).Microseconds()) / 1000
 
-		var args []string
-		for _, arg := range cmd.Args() {
-			args = append(args, fmt.Sprintf("%v", arg))
-		}
-		commands := strings.Join(args, " ")
-
 		if err != nil && err != redis.Nil {
-			hlog.CtxErrorf(ctx, "go-redis command fail: %s, err: %s, cost: %.3f", commands, err.Error(), costTime)
+			hlog.CtxErrorf(ctx, "go-redis command fail: %s, err: %s, cost: %.3fms", cmd.String(), err.Error(), costTime)
 		} else {
-			hlog.CtxInfof(ctx, "redis command: %s, cost: %.3f", commands, costTime)
+			hlog.CtxInfof(ctx, "redis command: %s, cost: %.3fms", cmd.String(), costTime)
 		}
 
 		return err

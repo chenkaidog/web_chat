@@ -29,7 +29,7 @@ func (account *Account) PasswordVerify(password string) bool {
 }
 
 func EncodePassword(password string) (string, string) {
-	salt := random.RandStr(128)
+	salt := random.RandStr(64)
 	h := sha256.New()
 
 	h.Write([]byte(salt))

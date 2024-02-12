@@ -63,7 +63,7 @@ var (
 	ParamError          = New(1_0002, "param error")
 	InternalServerError = New(1_000_3, "internal server error")
 
-	AccountNotExistError      = New(2_0001, "account not exist")
+	AccountNotExistError      = New(2_0001, "account not exist or password incorrect")
 	PasswordIncorrect         = AccountNotExistError
 	AccountStatusInvalidError = New(2_0002, "account is invalid")
 	AccountExpiredError       = New(2_000_3, "account is expired")

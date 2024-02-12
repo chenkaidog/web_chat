@@ -7,7 +7,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
-func init() {
+func Init() {
 	logger := &hertzLogger{
 		loggerInf: NewLogrusLogger(),
 	}

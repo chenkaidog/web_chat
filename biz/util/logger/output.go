@@ -20,26 +20,37 @@ const (
 
 	envLogLevel          = "log_level"
 	envLogFileOutput     = "log_file_output"
-	envLogOutputFileName = "log_web_chat"
+	envLogOutputFileName = "log_output_filename"
 )
 
 func newOutput() io.Writer {
-	fileOutput := os.Getenv(envLogFileOutput)
-	if fileOutput == "true" {
-		return io.MultiWriter(
-			os.Stdout,
-			&lumberjack.Logger{
-				Filename:   fmt.Sprintf(logFileName, os.Getenv(envLogOutputFileName)),
-				MaxSize:    logFileMaxSize,
-				MaxAge:     logFileMaxAge,
-				MaxBackups: logFileMaxBackups,
-				LocalTime:  true,
-				Compress:   false,
-			},
-		)
-	}
+	// fileOutput := os.Getenv(envLogFileOutput)
+	// if fileOutput == "true" {
+	// 	return io.MultiWriter(
+	// 		os.Stdout,
+	// 		&lumberjack.Logger{
+	// 			Filename:   fmt.Sprintf(logFileName, os.Getenv(envLogOutputFileName)),
+	// 			MaxSize:    logFileMaxSize,
+	// 			MaxAge:     logFileMaxAge,
+	// 			MaxBackups: logFileMaxBackups,
+	// 			LocalTime:  true,
+	// 			Compress:   false,
+	// 		},
+	// 	)
+	// }
 
-	return os.Stdout
+	// return os.Stdout
+
+	return io.MultiWriter(
+		&lumberjack.Logger{
+			Filename:   fmt.Sprintf(logFileName, os.Getenv(envLogOutputFileName)),
+			MaxSize:    logFileMaxSize,
+			MaxAge:     logFileMaxAge,
+			MaxBackups: logFileMaxBackups,
+			LocalTime:  true,
+			Compress:   false,
+		},
+	)
 }
 
 func newLevel() hlog.Level {

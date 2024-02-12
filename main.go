@@ -6,6 +6,7 @@ import (
 	"web_chat/biz/config"
 	"web_chat/biz/db"
 	"web_chat/biz/middleware"
+	"web_chat/biz/util/logger"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -14,6 +15,7 @@ import (
 )
 
 func main() {
+	logger.Init()
 	config.Init()
 	db.Init()
 

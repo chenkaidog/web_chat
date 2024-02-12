@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const depth = 3
+const depth = 4
 
 type logrusLogger struct {
 	*logrus.Logger
@@ -23,11 +23,15 @@ func NewLogrusLogger() hlog.FullLogger {
 	logger := &logrusLogger{
 		Logger: logrus.New(),
 	}
+
 	logger.SetFormatter(
 		&logrus.JSONFormatter{
 			TimestampFormat: time.RFC3339Nano,
 		},
 	)
+
+	logger.AddHook(new(TraceHook))
+	logger.AddHook(new(ConsoleHook))
 
 	return logger
 }
@@ -168,13 +172,13 @@ func (logger *logrusLogger) SetLevel(level hlog.Level) {
 
 // SetOutput implements hlog.FullLogger.
 func (logger *logrusLogger) SetOutput(output io.Writer) {
-	logger.SetOutput(output)
+	logger.Logger.SetOutput(output)
 }
 
-type hook struct{}
+type TraceHook struct{}
 
 // Fire implements logrus.Hook.
-func (*hook) Fire(entry *logrus.Entry) error {
+func (*TraceHook) Fire(entry *logrus.Entry) error {
 	traceInfo := traceinfo.GetTraceInfo(entry.Context)
 	entry.Data["log_id"] = traceInfo.LogID
 
@@ -182,6 +186,23 @@ func (*hook) Fire(entry *logrus.Entry) error {
 }
 
 // Levels implements logrus.Hook.
-func (*hook) Levels() []logrus.Level {
+func (*TraceHook) Levels() []logrus.Level {
+	return logrus.AllLevels
+}
+
+type ConsoleHook struct{}
+
+func (hook *ConsoleHook) Fire(entry *logrus.Entry) error {
+	fmt.Printf("[%s] %s %s %s %s\n",
+		entry.Level,
+		entry.Time.Format(time.RFC3339),
+		entry.Data["log_id"],
+		entry.Data["location"],
+		entry.Message,
+	)
+	return nil
+}
+
+func (hook *ConsoleHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }

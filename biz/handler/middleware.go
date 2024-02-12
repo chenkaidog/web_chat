@@ -7,6 +7,7 @@ import (
 	"web_chat/biz/repository"
 
 	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/hertz-contrib/sessions"
 )
 
@@ -23,7 +24,7 @@ func AccountIDMiddleware() app.HandlerFunc {
 			return
 		}
 		c.Set(sessionAccountID, accountID)
-		c.Set(sessionSessID, session.ID)
+		c.Set(sessionSessID, session.ID())
 
 		c.Next(ctx)
 	}
@@ -35,17 +36,19 @@ func AccountStatusMiddleware() app.HandlerFunc {
 		sessID := c.GetString(sessionSessID)
 
 		sessionList, err := repository.GetSessionList(ctx, accountID)
-		if err != nil || sessionList == nil {
+		if err != nil {
+			hlog.CtxErrorf(ctx, "session list err: %v", err)
 			c.AbortWithMsg("internal server error", http.StatusInternalServerError)
 			return
 		}
-		if !containSession(sessionList, sessID) {
+		if sessionList == nil || !containSession(sessionList, sessID) {
 			c.AbortWithMsg("user not login", http.StatusUnauthorized)
 			return
 		}
 
 		account, err := repository.GetAccountByAccountID(ctx, accountID)
 		if err != nil || account == nil {
+			hlog.CtxErrorf(ctx, "account is empty %v, or err: %v", account, err)
 			c.AbortWithMsg("internal server error", http.StatusInternalServerError)
 			return
 		}
