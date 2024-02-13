@@ -206,7 +206,10 @@ func setAccountInCache(ctx context.Context, account *domain.Account) error {
 	return nil
 }
 
-const fieldSessionList = "session_list"
+const (
+	fieldSessionList = "session_list"
+	maxSessionSize   = 3
+)
 
 func AppendSessionInAccount(ctx context.Context, accountID, sessionID string) error {
 	sessionList, err := GetSessionList(ctx, accountID)
@@ -215,6 +218,9 @@ func AppendSessionInAccount(ctx context.Context, accountID, sessionID string) er
 	}
 
 	sessionList = append(sessionList, sessionID)
+	if len(sessionList) > maxSessionSize {
+		sessionList = sessionList[:maxSessionSize]
+	}
 
 	data, err := json.Marshal(sessionList)
 	if err != nil {
