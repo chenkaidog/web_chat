@@ -21,6 +21,7 @@ func customizedRegister(r *server.Hertz) {
 		authGroup := root.Group("/", handler.AccountStatusMiddleware())
 		{
 			authGroup.POST("/password/update", handler.UpdatePassword)
+			authGroup.POST("/chat/stream", handler.StreamChat)
 		}
 	}
 }

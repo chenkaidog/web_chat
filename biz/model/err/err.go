@@ -67,4 +67,9 @@ var (
 	PasswordIncorrect         = AccountNotExistError
 	AccountStatusInvalidError = New(2_0002, "account is invalid")
 	AccountExpiredError       = New(2_000_3, "account is expired")
+
+	PlatformError        = New(3_0001, "platform error")
+	ModelNotSupported    = New(3_0002, "model is not supported")
+	PlatformNotSupported = New(3_0003, "platform not supported")
+	ResponseTimeoutError = New(3_0004, "response is timeout")
 )

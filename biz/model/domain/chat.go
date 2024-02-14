@@ -14,6 +14,7 @@ const (
 )
 
 type PlatformError struct {
+	Err  error
 	Code int
 	Msg  string
 }

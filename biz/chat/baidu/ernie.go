@@ -5,32 +5,42 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"web_chat/biz/config"
 	"web_chat/biz/model/domain"
+	"web_chat/biz/model/err"
 	"web_chat/biz/util/sse_client"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
-func NewErine(model string) *Erine {
+func NewErine(model string) (*Erine, err.Error) {
 	switch model {
 	case domain.ModelErine4:
 		return &Erine{
 			ChatUrl:   erine4chatUrl,
 			AppKey:    config.GetBaiduConf().AppKey,
 			AppSecret: config.GetBaiduConf().AppSecret,
-		}
+		}, nil
 	}
 
-	return nil
+	return nil, err.ModelNotSupported
 }
 
 type Erine struct {
 	AppKey    string
 	AppSecret string
 	ChatUrl   string
+}
+
+func (*Erine) PlatformErrHandler(pErr *domain.PlatformError) string {
+	if pErr.Err != nil {
+		return "internal server error"
+	}
+
+	return fmt.Sprintf("%d:%s", pErr.Code, pErr.Msg)
 }
 
 func (e *Erine) StreamChat(ctx context.Context, chatContext []*domain.ChatContent) (chan string, chan *domain.PlatformError, error) {
@@ -57,11 +67,18 @@ func (e *Erine) StreamChat(ctx context.Context, chatContext []*domain.ChatConten
 	}
 
 	errCh := make(chan *domain.PlatformError)
-	respch := sse_client.HandleSseResp(ctx, httpResp, func(ctx context.Context, data []byte) (string, bool) {
+	respCh := make(chan string)
+
+	sse_client.HandleSseResp(ctx, httpResp, func(ctx context.Context, event *sse_client.SseEvent) bool {
+		if event.Data == nil {
+			return false
+		}
+
 		var respBody ChatCreateResp
-		if err := json.Unmarshal(data, &respBody); err != nil {
+		if err := json.Unmarshal(event.Data, &respBody); err != nil {
 			hlog.CtxErrorf(ctx, "json unmarshal err: %v", err)
-			return "", false
+			errCh <- &domain.PlatformError{Err: err}
+			return false
 		}
 
 		if respBody.ErrorCode != 0 || respBody.Error != "" {
@@ -70,21 +87,26 @@ func (e *Erine) StreamChat(ctx context.Context, chatContext []*domain.ChatConten
 				Code: respBody.ErrorCode,
 				Msg:  respBody.ErrorMsg,
 			}
-			return "", true
+			return false
 		}
 
 		if respBody.IsEnd {
-			return "", true
+			return true
 		}
 
 		if len(respBody.Result) > 0 {
-			return respBody.Result, false
+			respCh <- respBody.Result
 		}
 
-		return "", false
-	})
+		return false
+	},
+		func() {
+			close(respCh)
+			close(errCh)
+		},
+	)
 
-	return respch, errCh, nil
+	return respCh, errCh, nil
 }
 
 func (e *Erine) newStreamChatRequest(ctx context.Context, chatContext []*domain.ChatContent) (*http.Request, error) {

@@ -71,5 +71,5 @@ func newLevel() hlog.Level {
 		return hlog.LevelFatal
 	}
 
-	return hlog.LevelInfo
+	return hlog.LevelTrace
 }

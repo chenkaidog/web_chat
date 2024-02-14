@@ -5,36 +5,46 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"web_chat/biz/config"
 	"web_chat/biz/model/domain"
+	"web_chat/biz/model/err"
 	"web_chat/biz/util/sse_client"
 
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
-func NewChatGPT(model string) *ChatGPT {
+func NewChatGPT(model string) (*ChatGPT, err.Error) {
 	switch model {
 	case domain.ModelGPT3:
 		return &ChatGPT{
 			Model:  modelGPT3,
 			ApiKey: config.GetOpenAIConf().ApiKey,
-		}
+		}, nil
 	case domain.ModelGPT4:
 		return &ChatGPT{
 			Model:  modelGPT4,
 			ApiKey: config.GetOpenAIConf().ApiKey,
-		}
+		}, nil
 	}
 
-	return nil
+	return nil, err.ModelNotSupported
 }
 
 type ChatGPT struct {
 	Model  string
 	ApiKey string
+}
+
+func (*ChatGPT) PlatformErrHandler(pErr *domain.PlatformError) string {
+	if pErr.Err != nil {
+		return "internal server error"
+	}
+
+	return fmt.Sprintf("%d:%s", pErr.Code, pErr.Msg)
 }
 
 func (gpt *ChatGPT) StreamChat(ctx context.Context, chatContext []*domain.ChatContent) (chan string, chan *domain.PlatformError, error) {
@@ -64,30 +74,43 @@ func (gpt *ChatGPT) StreamChat(ctx context.Context, chatContext []*domain.ChatCo
 		return nil, nil, errors.New("request fails")
 	}
 
-	// todo: handle chatgpt biz error
 	errCh := make(chan *domain.PlatformError)
-	respch := sse_client.HandleSseResp(ctx, resp, func(ctx context.Context, data []byte) (string, bool) {
-		var respBody ChatCreateResp
-		if err := json.Unmarshal(data, &respBody); err != nil {
-			hlog.CtxErrorf(ctx, "json unmarshal err: %v", err)
-			return "", false
+	respCh := make(chan string)
+
+	sse_client.HandleSseResp(ctx, resp, func(ctx context.Context, event *sse_client.SseEvent) bool {
+		if event.Data == nil {
+			return false
 		}
+
+		var respBody ChatCreateResp
+		if err := json.Unmarshal(event.Data, &respBody); err != nil {
+			hlog.CtxErrorf(ctx, "json unmarshal err: %v", err)
+			errCh <- &domain.PlatformError{Err: err}
+			return false
+		}
+
+		// todo: handle biz err
 
 		if len(respBody.Choices) > 0 {
 			choice := respBody.Choices[0]
 			if choice.FinishReason == finishReasonStop {
-				return "", true
+				return true
 			}
 
 			if len(choice.Delta.Content) > 0 {
-				return choice.Delta.Content, false
+				respCh <- choice.Delta.Content
 			}
 		}
 
-		return "", false
-	})
+		return false
+	},
+		func() {
+			close(respCh)
+			close(errCh)
+		},
+	)
 
-	return respch, errCh, nil
+	return respCh, errCh, nil
 }
 
 func (gpt *ChatGPT) newStreamChatRequest(ctx context.Context, chatContext []*domain.ChatContent) (*http.Request, error) {

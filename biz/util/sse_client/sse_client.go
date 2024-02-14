@@ -10,15 +10,17 @@ import (
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 )
 
-type Handler func(ctx context.Context, msg []byte) (string, bool)
+type Handler func(ctx context.Context, event *SseEvent) bool
 
-func HandleSseResp(ctx context.Context, resp *http.Response, handle Handler) chan string {
-	eventCh := readStreamResp(ctx, resp)
-	respCh := make(chan string)
+func HandleSseResp(ctx context.Context, resp *http.Response, handle Handler, closeF func()) {
+	stopCh := make(chan interface{})
+	eventCh := readStreamResp(ctx, resp, stopCh)
 
 	go func() {
 		defer func() {
-			close(respCh)
+			close(stopCh)
+			closeF()
+
 			if rec := recover(); rec != nil {
 				hlog.CtxErrorf(ctx, "panic recover: rec: %v\n%s", rec, debug.Stack())
 			}
@@ -32,30 +34,24 @@ func HandleSseResp(ctx context.Context, resp *http.Response, handle Handler) cha
 				if !ok {
 					return
 				}
-				if event != nil && event.Data != nil {
-					hlog.CtxDebugf(ctx, "msg: %s", event.Data)
-					result, stop := handle(ctx, event.Data)
-					if stop {
+				if event != nil {
+					if handle(ctx, event) {
 						return
-					}
-					if result != "" {
-						respCh <- result
 					}
 				}
 			}
 		}
 	}()
-
-	return respCh
 }
 
-func readStreamResp(ctx context.Context, resp *http.Response) chan *SseEvent {
+func readStreamResp(ctx context.Context, resp *http.Response, stopCh chan interface{}) chan *SseEvent {
 	eventCh := make(chan *SseEvent)
 
 	go func() {
 		defer func() {
 			close(eventCh)
 			resp.Body.Close()
+			hlog.CtxDebugf(ctx, "finally close read loop...")
 
 			if rec := recover(); rec != nil {
 				hlog.CtxErrorf(ctx, "panic recover: rec: %v\n%s", rec, debug.Stack())
@@ -70,10 +66,12 @@ func readStreamResp(ctx context.Context, resp *http.Response) chan *SseEvent {
 			}
 
 			data := scanner.Bytes()
-			hlog.CtxInfof(ctx, "msg: %s", data)
+			hlog.CtxDebugf(ctx, "msg: %s", data)
 
 			select {
 			case eventCh <- parseEvent(data):
+			case <-stopCh:
+				return
 			case <-ctx.Done():
 				return
 			}
