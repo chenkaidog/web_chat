@@ -11,6 +11,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/hertz-contrib/binding/go_playground"
+	"github.com/hertz-contrib/cors"
 	"github.com/hertz-contrib/logger/accesslog"
 )
 
@@ -26,6 +27,10 @@ func main() {
 		server.WithCustomValidator(vd),
 	)
 
+	h.Delims("{[{", "}]}")
+	h.Static("/", "static/")
+	h.LoadHTMLGlob("static/html/*")
+
 	h.Use(middleware.RecoveryMiddleware())
 	h.Use(middleware.TraceContextMW())
 	h.Use(
@@ -34,15 +39,7 @@ func main() {
 			accesslog.WithFormat("${status} - ${latency} ${method} ${path} ${queryParams}"),
 		),
 	)
-
-	// h.Use(
-	// 	cors.New(cors.Config{
-	// 		AllowCredentials: false,
-	// 		MaxAge:           12 * time.Hour,
-	// 	},
-	// 	),
-	// )
-
+	h.Use(cors.Default())
 	h.Use(middleware.SessionMiddleware())
 
 	register(h)

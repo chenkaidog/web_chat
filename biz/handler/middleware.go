@@ -76,3 +76,28 @@ func containSession(sessionList []string, sessID string) bool {
 
 	return false
 }
+
+func ChatLimitMiddleware() []app.HandlerFunc {
+	return []app.HandlerFunc{
+		chatQpsLimitMiddleware(),
+	}
+}
+
+func chatQpsLimitMiddleware() app.HandlerFunc {
+	return func(ctx context.Context, c *app.RequestContext) {
+		sessID := c.GetString(sessionSessID)
+		ok, err := repository.QPSLimitBySession(ctx, sessID)
+		if err != nil {
+			hlog.CtxErrorf(ctx, "limit usage err err: %v", err)
+			c.AbortWithMsg("internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if !ok {
+			c.AbortWithMsg("qps too high", http.StatusForbidden)
+			return
+		}
+
+		c.Next(ctx)
+	}
+}

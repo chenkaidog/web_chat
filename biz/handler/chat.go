@@ -75,7 +75,7 @@ func StreamChat(ctx context.Context, c *app.RequestContext) {
 
 	c.SetStatusCode(http.StatusOK)
 	ssePublisher := sse.NewStream(c)
-	timeout := time.NewTimer(time.Second * 30)
+	timeout := time.NewTimer(time.Second * 20)
 
 	for {
 		select {
@@ -87,8 +87,11 @@ func StreamChat(ctx context.Context, c *app.RequestContext) {
 				endPublish(ssePublisher)
 				return
 			}
-			timeout.Reset(time.Second * 30)
-			contentPublish(ssePublisher, msg)
+			timeout.Reset(time.Second * 20)
+			if stdErr := contentPublish(ssePublisher, msg); stdErr != nil {
+				hlog.CtxWarnf(ctx, "publish err: %v", stdErr)
+				return
+			}
 		case pErr, ok := <-errCh:
 			if ok {
 				errorPublish(ssePublisher, chatImpl.PlatformErrHandler(pErr))
@@ -136,7 +139,7 @@ func endPublish(stream *sse.Stream) {
 	)
 }
 
-func contentPublish(stream *sse.Stream, content string) {
+func contentPublish(stream *sse.Stream, content string) error {
 	resp := &dto.ChatCreateResp{
 		CommonResp: dto.CommonResp{
 			Success: true,
@@ -147,7 +150,7 @@ func contentPublish(stream *sse.Stream, content string) {
 
 	data, _ := json.Marshal(resp)
 
-	stream.Publish(
+	return stream.Publish(
 		&sse.Event{
 			Data: data,
 		},

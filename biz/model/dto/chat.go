@@ -8,7 +8,7 @@ type Message struct {
 type ChatCreateReq struct {
 	Platform Platform  `json:"platform" binding:"required"`
 	Model    Model     `json:"model" binding:"required"`
-	Messages []Message `json:"messages" binding:"required"`
+	Messages []Message `json:"messages" binding:"required,max=20"`
 }
 
 type ChatCreateResp struct {

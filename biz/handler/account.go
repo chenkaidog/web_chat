@@ -30,7 +30,6 @@ func Login(ctx context.Context, c *app.RequestContext) {
 
 	accountID, expirationDate, bizErr := accountLoginVerify(ctx, req.Username, req.Password)
 	if bizErr != nil {
-		// todo: security strategy
 		dto.FailResp(c, &resp, bizErr)
 		return
 	}
@@ -118,7 +117,6 @@ func UpdatePassword(ctx context.Context, c *app.RequestContext) {
 	accountID := c.GetString(sessionAccountID)
 	account, bizErr := passwordUpdateVerify(ctx, accountID, req.Password)
 	if bizErr != nil {
-		// todo: security strategy
 		dto.FailResp(c, &resp, bizErr)
 		return
 	}

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>登陆</title>
+    <script src="/js/login.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eeeeeeee;
+            margin: 0;
+            padding: 20;
+        }
+
+        #loginForm {
+            background-color: #dddddddd;
+            border: 1px solid #888;
+            width: 300px;
+            /* Adjust width as needed */
+            height: 230px;
+            /* Adjust height as needed */
+            position: absolute;
+            top: 50%;
+            /* Position vertically at 50% from the top */
+            left: 50%;
+            /* Position horizontally at 50% from the left */
+            transform: translate(-50%, -50%);
+            /* Center the form using transform */
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        a:link {
+            color: #000000;
+        }
+
+        a:visited {
+            color: #ff0000;
+        }
+
+        a:hover {
+            color: #003cff;
+        }
+
+        #loginForgetPassword {
+            float: right;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        label {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            margin-bottom: 15px;
+            border-radius: 5px;
+
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        #loginBut {
+            background-color: #45a000;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+        }
+
+        #loginBut:hover {
+            background-color: green;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loginForm">
+        <label for="username"><b>用户名</b></label><br>
+        <input type="text" id="username" name="username" placeholder="Enter username" required><br>
+
+        <label for="password"><b>密码</b></label><br>
+        <input type="password" id="password" name="password" placeholder="Enter password" required><br>
+
+        <button id="loginBut">登陆 / Login</button><br>
+
+        <label id="loginForgetPassword">
+            <a href="https://www.baidu.com" target="_blank">忘记密码?</a>
+        </label><br>
+    </div>
+</body>
+
+</html>
