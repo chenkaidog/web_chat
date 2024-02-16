@@ -13,6 +13,7 @@ func customizedRegister(r *server.Hertz) {
 	r.GET("/ping", handler.Ping)
 
 	r.POST("/login", handler.Login)
+	r.GET("/login", handler.LoginPage)
 
 	root := r.Group("/", handler.AccountIDMiddleware())
 	{
@@ -21,11 +22,17 @@ func customizedRegister(r *server.Hertz) {
 		authGroup := root.Group("/", handler.AccountStatusMiddleware())
 		{
 			authGroup.POST("/password/update", handler.UpdatePassword)
-			
+
 			chat := authGroup.Group("/chat", handler.ChatLimitMiddleware()...)
 			{
 				chat.POST("/stream", handler.StreamChat)
 			}
 		}
 	}
+
+	// move into root after test
+	r.GET("/index/home", handler.HomePage)
+	r.GET("/index/readme", handler.ReadMePage)
+	r.GET("/index/chat", handler.ChatPage)
+	r.GET("/index/password_update")
 }

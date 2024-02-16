@@ -24,23 +24,6 @@ const (
 )
 
 func newOutput() io.Writer {
-	// fileOutput := os.Getenv(envLogFileOutput)
-	// if fileOutput == "true" {
-	// 	return io.MultiWriter(
-	// 		os.Stdout,
-	// 		&lumberjack.Logger{
-	// 			Filename:   fmt.Sprintf(logFileName, os.Getenv(envLogOutputFileName)),
-	// 			MaxSize:    logFileMaxSize,
-	// 			MaxAge:     logFileMaxAge,
-	// 			MaxBackups: logFileMaxBackups,
-	// 			LocalTime:  true,
-	// 			Compress:   false,
-	// 		},
-	// 	)
-	// }
-
-	// return os.Stdout
-
 	return io.MultiWriter(
 		&lumberjack.Logger{
 			Filename:   fmt.Sprintf(logFileName, os.Getenv(envLogOutputFileName)),

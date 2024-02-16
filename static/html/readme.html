@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.js"></script>
+
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #readme_content {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            right: 50%;
+            height: 100%;
+            width: 50%;
+            transform: translateX(-50%);
+            padding: 10px;
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var md = window.markdownit() ;
+            var readme = document.getElementById("readme_content");
+            var htmlContent = md.render(readme.innerHTML);
+
+            readme.innerHTML = htmlContent
+        });
+    </script>
+</head>
+
+<body>
+    <div id="readme_content">
+        {[{ .readme }]}
+    </div>
+</body>
