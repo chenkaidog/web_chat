@@ -20,7 +20,7 @@ $(document).ready(function () {
                 if (status == 'success') {
                     var code = data.code;
                     var success = data.success;
-                    var msg = data.msg;
+                    var msg = data.message;
 
                     if (success) {
                         window.location.href = "/login"

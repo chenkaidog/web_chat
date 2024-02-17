@@ -219,7 +219,7 @@ func AppendSessionInAccount(ctx context.Context, accountID, sessionID string) er
 
 	sessionList = append(sessionList, sessionID)
 	if len(sessionList) > maxSessionSize {
-		sessionList = sessionList[:maxSessionSize]
+		sessionList = sessionList[len(sessionList)-maxSessionSize:]
 	}
 
 	data, err := json.Marshal(sessionList)
