@@ -1,7 +1,5 @@
 document.getElementById("account_btn").addEventListener('click', function () {
-    markMenuButton();
-    this.style.backgroundColor = '#999999';
-    document.getElementById("content_frame").src = '/index/password_update';
+    window.location.href = '/index/password_update';
 })
 
 document.getElementById("readme_but").addEventListener('click', function () {
