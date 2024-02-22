@@ -1,29 +1,80 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"time"
 	"web_chat/biz/repository"
+	"web_chat/biz/util/origin"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
 	"github.com/hertz-contrib/sessions"
 )
 
+func RootMiddleware() []app.HandlerFunc {
+	return []app.HandlerFunc{
+		BlackListMiddleware(),
+	}
+}
+
+func AuthMiddleware() []app.HandlerFunc {
+	return []app.HandlerFunc{
+		LoginRedirectMiddleware(),
+		AccountIDMiddleware(),
+		AccountStatusMiddleware(),
+	}
+}
+
+func BlackListMiddleware() app.HandlerFunc {
+	return func(ctx context.Context, c *app.RequestContext) {
+		isBlock, err := repository.GetRemoteAddrBlackList(ctx, origin.GetIp(c))
+		if err != nil {
+			c.AbortWithMsg("internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		if isBlock {
+			c.AbortWithMsg("you are blocked", http.StatusForbidden)
+			return
+		}
+
+		c.Next(ctx)
+	}
+}
+
+func LoginRedirectMiddleware() app.HandlerFunc {
+	return func(ctx context.Context, c *app.RequestContext) {
+		c.Next(ctx)
+
+		statusCode := c.Response.StatusCode()
+		if statusCode == http.StatusUnauthorized {
+			if bytes.Equal(c.Path(), []byte("/login")) {
+				return
+			}
+
+			c.Redirect(http.StatusOK, []byte("/login"))
+		}
+	}
+}
+
 func AccountIDMiddleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		session := sessions.Default(c)
-		if session == nil {
-			c.AbortWithMsg("user not login", http.StatusUnauthorized)
-			return
-		}
 		accountID, ok := session.Get(sessionAccountID).(string)
 		if !ok || accountID == "" {
 			c.AbortWithMsg("user not login", http.StatusUnauthorized)
 			return
 		}
+		username, ok := session.Get(sessionAccountUsername).(string)
+		if !ok || accountID == "" {
+			c.AbortWithMsg("user not login", http.StatusUnauthorized)
+			return
+		}
+
 		c.Set(sessionAccountID, accountID)
+		c.Set(sessionAccountUsername, username)
 		c.Set(sessionSessID, session.ID())
 
 		c.Next(ctx)
@@ -88,7 +139,7 @@ func chatQpsLimitMiddleware() app.HandlerFunc {
 		sessID := c.GetString(sessionSessID)
 		ok, err := repository.QPSLimitBySession(ctx, sessID)
 		if err != nil {
-			hlog.CtxErrorf(ctx, "limit usage err err: %v", err)
+			hlog.CtxErrorf(ctx, "limit usage err: %v", err)
 			c.AbortWithMsg("internal server error", http.StatusInternalServerError)
 			return
 		}

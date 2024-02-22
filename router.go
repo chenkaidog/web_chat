@@ -12,27 +12,28 @@ import (
 func customizedRegister(r *server.Hertz) {
 	r.GET("/ping", handler.Ping)
 
-	r.POST("/login", handler.Login)
-	r.GET("/login", handler.LoginPage)
-
-	root := r.Group("/", handler.AccountIDMiddleware())
+	root := r.Group("/", handler.RootMiddleware()...)
 	{
-		root.POST("/logout", handler.Logout)
+		root.POST("/login", handler.Login)
+		root.GET("/login", handler.LoginPage)
 
-		authGroup := root.Group("/", handler.AccountStatusMiddleware())
+		authGroup := root.Group("/", handler.AuthMiddleware()...)
 		{
+			authGroup.POST("/logout", handler.Logout)
 			authGroup.POST("/password/update", handler.UpdatePassword)
 
 			chat := authGroup.Group("/chat", handler.ChatLimitMiddleware()...)
 			{
 				chat.POST("/stream", handler.StreamChat)
 			}
+
+			index := authGroup.Group("/index")
+			{
+				index.GET("/home", handler.HomePage)
+				index.GET("/readme", handler.ReadMePage)
+				index.GET("/chat", handler.ChatPage)
+				index.GET("/password_update", handler.PasswordUpdatePage)
+			}
 		}
 	}
-
-	// move into root after test
-	r.GET("/index/home", handler.HomePage)
-	r.GET("/index/readme", handler.ReadMePage)
-	r.GET("/index/chat", handler.ChatPage)
-	r.GET("/index/password_update")
 }

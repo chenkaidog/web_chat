@@ -7,6 +7,7 @@ import (
 	"web_chat/biz/model/dto"
 	"web_chat/biz/model/err"
 	"web_chat/biz/repository"
+	"web_chat/biz/util/origin"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
@@ -14,8 +15,10 @@ import (
 )
 
 const (
-	sessionAccountID = "account_id"
-	sessionSessID    = "session_id"
+	sessionAccountID       = "account_id"
+	sessionAccountUsername = "username"
+	sessionSessID          = "session_id"
+	maxFailTime            = 10
 )
 
 func Login(ctx context.Context, c *app.RequestContext) {
@@ -30,6 +33,9 @@ func Login(ctx context.Context, c *app.RequestContext) {
 
 	accountID, expirationDate, bizErr := accountLoginVerify(ctx, req.Username, req.Password)
 	if bizErr != nil {
+		if !err.ErrorEqual(bizErr, err.InternalServerError) {
+			recordFailOperation(ctx, c)
+		}
 		dto.FailResp(c, &resp, bizErr)
 		return
 	}
@@ -39,6 +45,7 @@ func Login(ctx context.Context, c *app.RequestContext) {
 
 	sess := sessions.Default(c)
 	sess.Set(sessionAccountID, accountID)
+	sess.Set(sessionAccountUsername, req.Username)
 	if stdErr = sess.Save(); stdErr != nil {
 		hlog.CtxErrorf(ctx, "save session err: %v", stdErr)
 		dto.FailResp(c, &resp, err.InternalServerError)
@@ -52,7 +59,6 @@ func Login(ctx context.Context, c *app.RequestContext) {
 	}
 
 	dto.SuccessResp(c, &resp)
-	return
 }
 
 func accountLoginVerify(ctx context.Context, username, password string) (string, time.Time, err.Error) {
@@ -101,7 +107,6 @@ func Logout(ctx context.Context, c *app.RequestContext) {
 	}
 
 	dto.SuccessResp(c, &resp)
-	return
 }
 
 func UpdatePassword(ctx context.Context, c *app.RequestContext) {
@@ -117,12 +122,14 @@ func UpdatePassword(ctx context.Context, c *app.RequestContext) {
 	accountID := c.GetString(sessionAccountID)
 	account, bizErr := passwordUpdateVerify(ctx, accountID, req.Password)
 	if bizErr != nil {
+		if !err.ErrorEqual(bizErr, err.InternalServerError) {
+			recordFailOperation(ctx, c)
+		}
 		dto.FailResp(c, &resp, bizErr)
 		return
 	}
 
 	salt, password := domain.EncodePassword(req.NewPassword)
-
 	if stdErr = repository.UpdateAccountPassword(
 		ctx, account.Salt, account.Password, accountID, salt, password); stdErr != nil {
 		hlog.CtxErrorf(ctx, "update password err: %v", stdErr)
@@ -130,8 +137,15 @@ func UpdatePassword(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
+	sess := sessions.Default(c)
+	sess.Clear()
+	if stdErr := sess.Save(); stdErr != nil {
+		hlog.CtxErrorf(ctx, "save session err: %v", stdErr)
+		dto.FailResp(c, &resp, err.InternalServerError)
+		return
+	}
+
 	dto.SuccessResp(c, &resp)
-	return
 }
 
 func passwordUpdateVerify(ctx context.Context, accountID, password string) (*domain.Account, err.Error) {
@@ -153,4 +167,14 @@ func passwordUpdateVerify(ctx context.Context, accountID, password string) (*dom
 		Status:         account.Status,
 		ExpirationDate: account.ExpirationDate,
 	}, nil
+}
+
+func recordFailOperation(ctx context.Context, c *app.RequestContext) {
+	remoteAddr := origin.GetIp(c)
+
+	failTime, _ := repository.RecordFailTime(ctx, remoteAddr)
+
+	if failTime > maxFailTime {
+		_ = repository.RecordRemoteAddrBlackList(ctx, remoteAddr)
+	}
 }

@@ -2,8 +2,6 @@
 <html lang="en">
 
 <head>
-    <script src="/js/home.js"></script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>home</title>
@@ -40,13 +38,13 @@
             text-align: left;
         }
 
-        .menu_btn:hover {
-            background-color: #999999;
-        }
-
         #account_btn {
             position: fixed;
             bottom: 0;
+        }
+
+        .menu_btn:hover {
+            background-color: #999999;
         }
 
         #content {
@@ -65,7 +63,6 @@
             height: 100%;
         }
     </style>
-
 </head>
 
 <body>
@@ -73,17 +70,18 @@
         <div id="menu_bar">
             <!-- 菜单内容 -->
             <div id="menu_list">
-                <button class="menu_btn" ><b>使用声明</b></button>
-                <button class="menu_btn"><b>无记忆对话</b></button>
-                <button class="menu_btn"><b>新建对话</b></button>
-                <button class="menu_btn"><b>清空对话</b></button>
+                <button class="menu_btn" id="readme_but"><b>使用声明</b></button>
+                <button class="menu_btn" id="single_chat_but"><b>无记忆对话</b></button>
+                <button class="menu_btn" id="new_chat_but"><b>新建对话</b></button>
             </div>
-            <button class="menu_btn" id="account_btn">🔐 账户123456</button>
+            <button class="menu_btn" id="account_btn">🔐 {[{ .Account }]}</button>
         </div>
         <div id="content">
             <iframe id="content_frame" frameborder="0" src="/index/readme"> </iframe>
         </div>
     </div>
+
+    <script src="/js/home.js"></script>
 </body>
 
 </html>

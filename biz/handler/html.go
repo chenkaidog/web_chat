@@ -13,7 +13,9 @@ func LoginPage(ctx context.Context, c *app.RequestContext) {
 }
 
 func HomePage(ctx context.Context, c *app.RequestContext) {
-	c.HTML(http.StatusOK, "home.html", nil)
+	c.HTML(http.StatusOK, "home.html", utils.H{
+		"Account": c.GetString(sessionAccountUsername),
+	})
 }
 
 func ReadMePage(ctx context.Context, c *app.RequestContext) {

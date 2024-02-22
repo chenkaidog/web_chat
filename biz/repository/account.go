@@ -18,7 +18,11 @@ import (
 )
 
 const (
-	accountInfoKeyPrefix = "web_chat_account_info_"
+	accountInfoKeyPrefix    = "web_chat_account_info_"
+	fieldSessionList        = "session_list"
+	maxSessionSize          = 3
+	sensitiveOpsLimit       = time.Second
+	keyRemoteAdddrBlackList = "remote_addr_black_list"
 )
 
 func accountInfoKey(accountID string) string {
@@ -206,11 +210,6 @@ func setAccountInCache(ctx context.Context, account *domain.Account) error {
 	return nil
 }
 
-const (
-	fieldSessionList = "session_list"
-	maxSessionSize   = 3
-)
-
 func AppendSessionInAccount(ctx context.Context, accountID, sessionID string) error {
 	sessionList, err := GetSessionList(ctx, accountID)
 	if err != nil {
@@ -292,4 +291,46 @@ func RemoveSession(ctx context.Context, accountID, sessionID string) error {
 	}
 
 	return nil
+}
+
+func RecordFailTime(ctx context.Context, remoteAddr string) (int64, error) {
+	pipeline := redis.GetRedisClient().Pipeline()
+	key := genSensitiveOpsKey(remoteAddr)
+	incr := pipeline.Incr(ctx, key)
+	pipeline.Expire(ctx, key, time.Hour)
+	_, err := pipeline.Exec(ctx)
+	if err != nil {
+		hlog.CtxErrorf(ctx, "pipe line err: %v", err)
+		return 0, err
+	}
+
+	return incr.Result()
+}
+
+func genSensitiveOpsKey(ip string) string {
+	return fmt.Sprintf("sensitive_ops_fail_time_key_%s", ip)
+}
+
+func RecordRemoteAddrBlackList(ctx context.Context, remoteAddr string) error {
+	_, err := redis.GetRedisClient().HSet(ctx, keyRemoteAdddrBlackList, remoteAddr, true).Result()
+	if err != nil {
+		hlog.CtxErrorf(ctx, "set black list err: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func GetRemoteAddrBlackList(ctx context.Context, remoteAddr string) (bool, error) {
+	_, err := redis.GetRedisClient().HGet(ctx, keyRemoteAdddrBlackList, remoteAddr).Result()
+	if err != nil {
+		if err == rediscli.Nil {
+			return false, nil
+		}
+		hlog.CtxErrorf(ctx, "hget err: %v", err)
+		return true, err
+	}
+
+	// record exist
+	return true, nil
 }
