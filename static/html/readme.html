@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/highlight.css">
+    <script src="/js/markdown-it.js"></script>
+    <script src="/js/highlight.js"></script>
 
     <style>
         body,
@@ -27,8 +29,8 @@
     </style>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var md = window.markdownit() ;
+        document.addEventListener("DOMContentLoaded", function () {
+            var md = window.markdownit();
             var readme = document.getElementById("readme_content");
             var htmlContent = md.render(readme.innerHTML);
 

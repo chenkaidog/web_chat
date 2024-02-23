@@ -49,7 +49,12 @@ function recordAssistantMsg(msg) {
         return;
     }
     var latestRecord = chatRecord[chatRecord.length - 1];
-    latestRecord.push(msg);
+    if (latestRecord.length == 1) {
+        latestRecord.push(msg);
+    } else if (latestRecord.length == 2) {
+        latestRecord[1] += msg;
+    }
+    
     while (chatRecord.length > recordMaxSize) {
         chatRecord.shift();
     }
@@ -219,7 +224,7 @@ function sendMessage(messages, chatID) {
                 var contentType = response.headers.get('Content-Type')
                 if (contentType != null && contentType.includes('application/json')) {
                     var msgResp = JSON.parse(eventData);
-                    finishAssistantResponse(contentResp);
+                    finishAssistantResponse();
                     alert(msgResp.message);
                     return;
                 }
@@ -251,12 +256,12 @@ function sendMessage(messages, chatID) {
                                 var msgResp = JSON.parse(line);
 
                                 if (!msgResp.success) {
-                                    finishAssistantResponse(contentResp);
+                                    finishAssistantResponse();
                                     alert(msgResp.message);
                                     return;
                                 }
                                 if (msgResp.is_end) {
-                                    finishAssistantResponse(contentResp);
+                                    finishAssistantResponse();
                                     return;
                                 }
 
@@ -274,18 +279,18 @@ function sendMessage(messages, chatID) {
                         read();
                     } catch (error) {
                         console.log(error);
-                        finishAssistantResponse(contentResp);
+                        finishAssistantResponse();
                     }
                 }
             } else {
                 alert('请求失败');
-                finishAssistantResponse(contentResp);
+                finishAssistantResponse();
             }
         })
         .catch(error => {
             // seems it does not work?
             console.log(error);
-            finishAssistantResponse(contentResp);
+            finishAssistantResponse();
         });
 }
 
@@ -310,6 +315,8 @@ function startGenerateResp(textarea, respDivID) {
 }
 
 function renderResp(content, respDivID) {
+    recordAssistantMsg(content);
+
     var htmlContent = md.render(content)
     var respContent = `<label><b>AI</b></label><br>${htmlContent}<br>`
     document.getElementById(respDivID).innerHTML = respContent;
@@ -320,8 +327,7 @@ function renderResp(content, respDivID) {
     }
 }
 
-function finishAssistantResponse(assistantMsg) {
-    recordAssistantMsg(assistantMsg);
+function finishAssistantResponse() {
     document.getElementById("send_but").innerHTML = '⬆️';
     pageStage = pageStageUserInput;
 };
