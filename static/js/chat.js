@@ -174,7 +174,6 @@ function parseChatReq(msg) {
     return;
 }
 
-
 function getSelectedModel() {
     var selectElement = document.getElementById("model_opt");
     var selectedModel = selectElement.options[selectElement.selectedIndex];
@@ -262,7 +261,7 @@ function sendMessage(messages, chatID) {
                                 }
                                 if (msgResp.is_end) {
                                     finishAssistantResponse();
-                                    return;
+                                    break;
                                 }
 
                                 contentResp += msgResp.content;

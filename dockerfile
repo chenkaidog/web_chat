@@ -15,7 +15,8 @@ WORKDIR /app
 COPY . .
 
 RUN mkdir /log \
-    && go env -w GOPROXY='https://goproxy.io/' \
+    && go env -w GO111MODULE=on \
+    && go env -w GOPROXY=https://goproxy.cn,direct \
     && go mod tidy \
     && go build -o main
 
