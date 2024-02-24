@@ -7,5 +7,5 @@ func TestEncodePassword(t*testing.T) {
 	t.Logf("salt: %s, hash: %s", salt, hash)
 }
 
-// TIhqOpY06bMbK3VzYQDHvyyk5NvlvqSVM0vmzdOcg6yRs36cgUmA2VepiT1UFMIr
-// 5478d863435a6e3679415f0900fd62e3d2e08274e8f78fc83af563524c1b72a7
+// dq9sNZ3XYYqZ0BieUefeFB6dE3t4u8oPxjbXHhsT4zE2h9IAtoCvg6G3F21meQ2e
+// bb89a0fffe4b389dd5bf50d01c57f38cc7a98c0b4ea06df95ec208147dd235365478d863435a6e3679415f0900fd62e3d2e08274e8f78fc83af563524c1b72a7

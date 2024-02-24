@@ -1,9 +1,25 @@
-FROM ubuntu:latest
+# FROM ubuntu:latest
+
+# WORKDIR /app
+
+# COPY output/ .
+
+# RUN chmod +x bootstrap.sh
+
+# CMD ["./bootstrap.sh"]
+
+FROM golang:latest
 
 WORKDIR /app
 
-COPY output/ .
+COPY . .
 
-RUN chmod +x bootstrap.sh
+RUN mkdir /log \
+    && go env -w GOPROXY='https://goproxy.io/' \
+    && go mod tidy \
+    && go build -o main
 
-CMD ["./bootstrap.sh"]
+ENV log_level=info\
+    log_output_filename='web_chat'
+
+CMD ["./main"]

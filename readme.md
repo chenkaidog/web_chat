@@ -15,5 +15,5 @@ Use the following command if you want to run in docker
 ```shell
 sh build.sh
 sudo docker build -t web_chat:latest .
-sudo docker run -itd --network=host web_chat:latest
+sudo docker run -itd --network=host -v web_chat_log:/app/log web_chat:latest
 ```
