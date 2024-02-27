@@ -52,7 +52,7 @@ function recordAssistantMsg(msg) {
     if (latestRecord.length == 1) {
         latestRecord.push(msg);
     } else if (latestRecord.length == 2) {
-        latestRecord[1] += msg;
+        latestRecord[1] = msg;
     }
     
     while (chatRecord.length > recordMaxSize) {
