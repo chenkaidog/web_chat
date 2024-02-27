@@ -116,9 +116,11 @@ function sendUserMessage() {
     var textarea = document.getElementById("msg_input");
     var userMessage = textarea.value
     if (userMessage.trim() === "") {
+        finishAssistantResponse();
         return alert("消息不能为空!!!")
     }
     if (userMessage.length > 500) {
+        finishAssistantResponse();
         return alert("消息长度不能大于500个字符!!!")
     }
 
