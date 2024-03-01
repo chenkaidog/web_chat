@@ -4,11 +4,14 @@
 
 # COPY output/ .
 
+# ENV log_level=info\
+#     log_output_filename='web_chat'
+
 # RUN chmod +x bootstrap.sh
 
 # CMD ["./bootstrap.sh"]
 
-FROM golang:latest
+FROM golang:1.21
 
 WORKDIR /app
 

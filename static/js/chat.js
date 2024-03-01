@@ -298,12 +298,13 @@ function sendMessage(messages, chatID) {
 function startGenerateResp(textarea, respDivID) {
     // clean up textarea
     document.getElementById("msg_input").value = "";
+    autoResize();
 
     var outputDiv = document.getElementById("output");
 
     var userContentDiv = document.createElement('div');
     userContentDiv.setAttribute('class', 'user_content')
-    userContentDiv.innerHTML = `<label><b>You</b></label><br><p>${textarea}</p><br>`
+    userContentDiv.innerHTML = `<label><b>You</b></label><br><p>${md.render(textarea)}</p><br>`
     outputDiv.appendChild(userContentDiv)
 
     var respDiv = document.createElement('div');
