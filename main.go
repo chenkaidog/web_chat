@@ -23,7 +23,7 @@ func main() {
 	vd := go_playground.NewValidator()
 
 	h := server.Default(
-		server.WithHostPorts("0.0.0.0:8080"),
+		server.WithHostPorts("0.0.0.0:8000"),
 		server.WithCustomValidator(vd),
 	)
 

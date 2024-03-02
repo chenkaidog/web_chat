@@ -20,7 +20,7 @@ var fixOutputBoardToBottom = true;
 var fetchAbortion;
 
 var md = window.markdownit({
-    linkify: true,
+    linkify: false,
     highlight: function (str, lang) {
         if (lang && hljs.getLanguage(lang)) {
             try {
@@ -304,7 +304,7 @@ function startGenerateResp(textarea, respDivID) {
 
     var userContentDiv = document.createElement('div');
     userContentDiv.setAttribute('class', 'user_content')
-    userContentDiv.innerHTML = `<label><b>You</b></label><br><p>${md.render(textarea)}</p><br>`
+    userContentDiv.innerHTML = `<label><b>You</b></label><br><p>${renderInput(textarea)}</p><br>`
     outputDiv.appendChild(userContentDiv)
 
     var respDiv = document.createElement('div');
@@ -314,6 +314,17 @@ function startGenerateResp(textarea, respDivID) {
 
     fixOutputBoardToBottom = true;
     outputDiv.scrollTop = outputDiv.scrollHeight;
+}
+
+function renderInput(text) {
+    // 将空格替换为HTML空格字符
+  text = text.replace(/ /g, "&nbsp;");
+  
+  // 将换行符替换为HTML换行标签
+  text = text.replace(/\n/g, "<br>");
+  
+  // 返回转换后的文本
+  return text;
 }
 
 function renderResp(content, respDivID) {
