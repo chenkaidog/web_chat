@@ -17,7 +17,7 @@ type Account struct {
 }
 
 func (account *Account) IsInvalid() bool {
-	return account.Status != AccountStatusValid
+	return account.Status == AccountStatusInvalid
 }
 
 func (account *Account) PasswordVerify(password string) bool {
@@ -39,6 +39,7 @@ func EncodePassword(password string) (string, string) {
 }
 
 const (
-	AccountStatusValid   = "valid"
-	AccountStatusInvalid = "invalid"
+	AccountStatusInactive = "inactive"
+	AccountStatusValid    = "valid"
+	AccountStatusInvalid  = "invalid"
 )

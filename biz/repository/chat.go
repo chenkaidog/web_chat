@@ -7,14 +7,14 @@ import (
 	"web_chat/biz/db/redis"
 )
 
-const qpsLimit = 5 * time.Second
+const qpsLimit = time.Second
 
-func QPSLimitBySession(ctx context.Context, sessID string) (bool, error) {
+func QPSLimitBySession(ctx context.Context, sessID,path string) (bool, error) {
 	return redis.GetRedisClient().
-		SetNX(ctx, genUsageLimitKey(sessID), true, qpsLimit).
+		SetNX(ctx, genUsageLimitKey(sessID,path), true, qpsLimit).
 		Result()
 }
 
-func genUsageLimitKey(sessID string) string {
-	return fmt.Sprintf("usage_limit_key_%s", sessID)
+func genUsageLimitKey(sessID,path string) string {
+	return fmt.Sprintf("usage_limit_key_%s_%s", sessID,path)
 }

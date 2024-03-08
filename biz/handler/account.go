@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"time"
 	"web_chat/biz/model/domain"
 	"web_chat/biz/model/dto"
 	"web_chat/biz/model/err"
@@ -17,6 +16,7 @@ import (
 const (
 	sessionAccountID       = "account_id"
 	sessionAccountUsername = "username"
+	sessionAccountStatus   = "status"
 	sessionSessID          = "session_id"
 	maxFailTime            = 10
 )
@@ -31,7 +31,7 @@ func Login(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
-	accountID, expirationDate, bizErr := accountLoginVerify(ctx, req.Username, req.Password)
+	account, bizErr := accountLoginVerify(ctx, req.Username, req.Password)
 	if bizErr != nil {
 		if !err.ErrorEqual(bizErr, err.InternalServerError) {
 			recordFailOperation(ctx, c)
@@ -41,18 +41,19 @@ func Login(ctx context.Context, c *app.RequestContext) {
 	}
 
 	resp.Username = req.Username
-	resp.ExpirationDate = expirationDate.Format("2006-01-02")
+	resp.ExpirationDate = account.ExpirationDate.Format("2006-01-02")
 
 	sess := sessions.Default(c)
-	sess.Set(sessionAccountID, accountID)
-	sess.Set(sessionAccountUsername, req.Username)
+	sess.Set(sessionAccountID, account.AccountID)
+	sess.Set(sessionAccountUsername, account.Username)
+	sess.Set(sessionAccountStatus, account.Status)
 	if stdErr = sess.Save(); stdErr != nil {
 		hlog.CtxErrorf(ctx, "save session err: %v", stdErr)
 		dto.FailResp(c, &resp, err.InternalServerError)
 		return
 	}
 
-	if stdErr := repository.AppendSessionInAccount(ctx, accountID, sess.ID()); stdErr != nil {
+	if stdErr := repository.AppendSessionInAccount(ctx, account.AccountID, sess.ID()); stdErr != nil {
 		hlog.CtxErrorf(ctx, "append session list err: %v", stdErr)
 		dto.FailResp(c, &resp, err.InternalServerError)
 		return
@@ -61,25 +62,25 @@ func Login(ctx context.Context, c *app.RequestContext) {
 	dto.SuccessResp(c, &resp)
 }
 
-func accountLoginVerify(ctx context.Context, username, password string) (string, time.Time, err.Error) {
+func accountLoginVerify(ctx context.Context, username, password string) (*domain.Account, err.Error) {
 	account, bizErr := repository.GetAccountByUsername(ctx, username)
 	if bizErr != nil {
-		return "", time.Time{}, err.InternalServerError
+		return nil, err.InternalServerError
 	}
 	if account == nil {
 		hlog.CtxInfof(ctx, "username not exist: %s", username)
-		return "", time.Time{}, err.AccountNotExistError
+		return nil, err.AccountNotExistError
 	}
 	if account.IsInvalid() {
 		hlog.CtxInfof(ctx, "account invalid: %s", account.Status)
-		return "", time.Time{}, err.AccountStatusInvalidError
+		return nil, err.AccountStatusInvalidError
 	}
 	if !account.PasswordVerify(password) {
 		hlog.CtxInfof(ctx, "password is incorrect")
-		return "", time.Time{}, err.PasswordIncorrect
+		return nil, err.PasswordIncorrect
 	}
 
-	return account.AccountID, account.ExpirationDate, nil
+	return account, nil
 }
 
 func Logout(ctx context.Context, c *app.RequestContext) {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"net/http"
 	"time"
+	"web_chat/biz/model/domain"
 	"web_chat/biz/repository"
 	"web_chat/biz/util/origin"
 
@@ -15,19 +16,19 @@ import (
 
 func RootMiddleware() []app.HandlerFunc {
 	return []app.HandlerFunc{
-		BlackListMiddleware(),
+		blackListMiddleware(),
 	}
 }
 
 func AuthMiddleware() []app.HandlerFunc {
 	return []app.HandlerFunc{
-		LoginRedirectMiddleware(),
-		AccountIDMiddleware(),
-		AccountStatusMiddleware(),
+		loginRedirectMiddleware(),
+		accountIDMiddleware(),
+		accountStatusMiddleware(),
 	}
 }
 
-func BlackListMiddleware() app.HandlerFunc {
+func blackListMiddleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		isBlock, err := repository.GetRemoteAddrBlackList(ctx, origin.GetIp(c))
 		if err != nil {
@@ -44,7 +45,7 @@ func BlackListMiddleware() app.HandlerFunc {
 	}
 }
 
-func LoginRedirectMiddleware() app.HandlerFunc {
+func loginRedirectMiddleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		c.Next(ctx)
 
@@ -59,7 +60,7 @@ func LoginRedirectMiddleware() app.HandlerFunc {
 	}
 }
 
-func AccountIDMiddleware() app.HandlerFunc {
+func accountIDMiddleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		session := sessions.Default(c)
 		accountID, ok := session.Get(sessionAccountID).(string)
@@ -81,7 +82,7 @@ func AccountIDMiddleware() app.HandlerFunc {
 	}
 }
 
-func AccountStatusMiddleware() app.HandlerFunc {
+func accountStatusMiddleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		accountID := c.GetString(sessionAccountID)
 		sessID := c.GetString(sessionSessID)
@@ -114,6 +115,8 @@ func AccountStatusMiddleware() app.HandlerFunc {
 			return
 		}
 
+		c.Set(sessionAccountStatus, account.Status)
+
 		c.Next(ctx)
 	}
 }
@@ -130,14 +133,26 @@ func containSession(sessionList []string, sessID string) bool {
 
 func ChatLimitMiddleware() []app.HandlerFunc {
 	return []app.HandlerFunc{
+		accountInactive() ,
 		chatQpsLimitMiddleware(),
+	}
+}
+
+func accountInactive() app.HandlerFunc {
+	return func(ctx context.Context, c *app.RequestContext) {
+		if c.GetString(sessionAccountStatus) != domain.AccountStatusValid {
+			c.AbortWithMsg("account is inactive", http.StatusForbidden)
+			return
+		}
+
+		c.Next(ctx)
 	}
 }
 
 func chatQpsLimitMiddleware() app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		sessID := c.GetString(sessionSessID)
-		ok, err := repository.QPSLimitBySession(ctx, sessID)
+		ok, err := repository.QPSLimitBySession(ctx, sessID, string(c.Path()))
 		if err != nil {
 			hlog.CtxErrorf(ctx, "limit usage err: %v", err)
 			c.AbortWithMsg("internal server error", http.StatusInternalServerError)

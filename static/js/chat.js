@@ -17,7 +17,7 @@ const pageStageAssistantOutput = "ai_output"
 var pageStage = pageStageUserInput;
 var fixOutputBoardToBottom = true;
 
-var fetchAbortion;
+var eventsource;
 
 var md = window.markdownit({
     linkify: false,
@@ -54,7 +54,7 @@ function recordAssistantMsg(msg) {
     } else if (latestRecord.length == 2) {
         latestRecord[1] = msg;
     }
-    
+
     while (chatRecord.length > recordMaxSize) {
         chatRecord.shift();
     }
@@ -104,9 +104,11 @@ document.getElementById("output").addEventListener('wheel', function (event) {
 });
 
 function abortAiOutput() {
-    fetchAbortion.abort();
-    document.getElementById("send_but").innerHTML = '⬆️';
-    pageStage = pageStageUserInput;
+    try {
+        close(eventsource);
+    } catch (error) {
+
+    }
 }
 
 function sendUserMessage() {
@@ -119,9 +121,9 @@ function sendUserMessage() {
         finishAssistantResponse();
         return alert("消息不能为空!!!")
     }
-    if (userMessage.length > 500) {
+    if (userMessage.length > 10000) {
         finishAssistantResponse();
-        return alert("消息长度不能大于500个字符!!!")
+        return alert("消息长度不能大于10000个字符!!!")
     }
 
     return parseChatReq(userMessage);
@@ -167,9 +169,9 @@ function parseChatReq(msg) {
         }
 
         messages.push({
-                role: roleUser,
-                content: msg
-            })
+            role: roleUser,
+            content: msg
+        })
         return sendMessage(messages, chatID);
     }
 
@@ -208,90 +210,56 @@ function sendMessage(messages, chatID) {
     }
 
     var contentResp = '';
-    fetchAbortion = new AbortController();
 
     fetch(
-        '/chat/stream',
+        '/chat/create',
         {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(chatReq),
-            signal: fetchAbortion.signal
         })
         .then(response => {
             if (response.ok) {
-                var contentType = response.headers.get('Content-Type')
-                if (contentType != null && contentType.includes('application/json')) {
-                    var msgResp = JSON.parse(eventData);
-                    finishAssistantResponse();
-                    alert(msgResp.message);
-                    return;
-                }
-
-                if (contentType != null && contentType.includes('text/event-stream')) {
-                    // 处理接收到的事件流数据
-                    var reader = response.body.getReader();
-                    var decoder = new TextDecoder('utf-8');
-
-                    function read() {
-                        reader.read().then(function (result) {
-                            if (result.done) {
-                                return;
-                            }
-
-                            var lines = decoder.decode(result.value).split('\n');
-
-                            for (var i = 0; i < lines.length; i++) {
-                                var line = lines[i];
-                                if (line.trim() === "") {
-                                    continue
-                                }
-
-                                console.log(line);
-
-                                if (line.startsWith("data:")) {
-                                    line = line.replace("data:", "").trim(); // 删除前缀并去除空格
-                                }
-                                var msgResp = JSON.parse(line);
-
-                                if (!msgResp.success) {
-                                    finishAssistantResponse();
-                                    alert(msgResp.message);
-                                    return;
-                                }
-                                if (msgResp.is_end) {
-                                    finishAssistantResponse();
-                                    break;
-                                }
-
-                                contentResp += msgResp.content;
-                            }
-                            renderResp(contentResp, chatID);
-
-                            // 继续读取下一个事件
-                            read();
-                        });
+                response.json().then(data => {
+                    if (!data.success) {
+                        alert(data.message);
+                        return finishAssistantResponse();
                     }
 
-                    // 开始读取事件流数据
-                    try {
-                        read();
-                    } catch (error) {
-                        console.log(error);
-                        finishAssistantResponse();
+                    eventsource = new EventSource('/chat/stream');
+                    eventsource.onmessage = function (event) {
+                        var message = JSON.parse(event.data);
+                        if (!message.success) {
+                            alert(message.message);
+                            this.close();
+                            return finishAssistantResponse();
+                        }
+
+                        if (message.is_end) {
+                            this.close();
+                            return finishAssistantResponse();
+                        }
+
+                        contentResp += message.content
+                        renderResp(contentResp, chatID);
                     }
-                }
+
+                    eventsource.onerror = function (error) {
+                        alert('请求失败');
+                        this.close();
+                        return finishAssistantResponse();
+                    }
+
+                    eventsource.onclose = function (event) {
+                        return finishAssistantResponse();
+                    }
+                })
             } else {
                 alert('请求失败');
-                finishAssistantResponse();
+                return finishAssistantResponse();
             }
-        })
-        .catch(error => {
-            // seems it does not work?
-            console.log(error);
-            finishAssistantResponse();
         });
 }
 
@@ -318,13 +286,13 @@ function startGenerateResp(textarea, respDivID) {
 
 function renderInput(text) {
     // 将空格替换为HTML空格字符
-  text = text.replace(/ /g, "&nbsp;");
-  
-  // 将换行符替换为HTML换行标签
-  text = text.replace(/\n/g, "<br>");
-  
-  // 返回转换后的文本
-  return text;
+    text = text.replace(/ /g, "&nbsp;");
+
+    // 将换行符替换为HTML换行标签
+    text = text.replace(/\n/g, "<br>");
+
+    // 返回转换后的文本
+    return text;
 }
 
 function renderResp(content, respDivID) {

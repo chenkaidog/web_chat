@@ -12,6 +12,7 @@ import (
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/hlog"
+	"github.com/hertz-contrib/sessions"
 	"github.com/hertz-contrib/sse"
 )
 
@@ -32,7 +33,9 @@ var modelMapper = map[dto.Model]string{
 	dto.ModelGPT4:   domain.ModelGPT4,
 }
 
-func StreamChat(ctx context.Context, c *app.RequestContext) {
+const sessionStreamChatId = "stream_chat_id"
+
+func CreateChat(ctx context.Context, c *app.RequestContext) {
 	var stdErr error
 	var req dto.ChatCreateReq
 	var resp dto.ChatCreateResp
@@ -42,13 +45,54 @@ func StreamChat(ctx context.Context, c *app.RequestContext) {
 		return
 	}
 
+	data, stdErr := json.Marshal(req)
+	if stdErr != nil {
+		hlog.CtxErrorf(ctx, "json marshal err: %v", stdErr)
+		dto.FailResp(c, &resp, err.InternalServerError)
+		return
+	}
+
+	sess := sessions.Default(c)
+	sess.Set(sessionStreamChatId, string(data))
+	if stdErr = sess.Save(); stdErr != nil {
+		hlog.CtxErrorf(ctx, "save session err: %v", stdErr)
+		dto.FailResp(c, &resp, err.InternalServerError)
+		return
+	}
+
+	dto.SuccessResp(c, &resp)
+}
+
+func StreamChat(ctx context.Context, c *app.RequestContext) {
+	c.SetStatusCode(http.StatusOK)
+	ssePublisher := sse.NewStream(c)
+
+	sess := sessions.Default(c)
+	chatReqRecord, ok := sess.Get(sessionStreamChatId).(string)
+
+	sess.Delete(sessionStreamChatId)
+	sess.Save()
+
+	if !ok {
+		hlog.CtxWarnf(ctx, "no chat record in session")
+		errorPublish(ssePublisher, "internal error")
+		return
+	}
+
+	var req dto.ChatCreateReq
+	if stdErr := json.Unmarshal([]byte(chatReqRecord), &req); stdErr != nil {
+		hlog.CtxErrorf(ctx, "json unmarshal err: %v", stdErr)
+		errorPublish(ssePublisher, "internal error")
+		return
+	}
+
 	chatImpl, bizErr := chat.NewchatImpl(
 		platformMapper[req.Platform],
 		modelMapper[req.Model],
 	)
 	if bizErr != nil {
-		hlog.CtxErrorf(ctx, "request param invalid[%v]: %s=>%s", bizErr, req.Platform, req.Model)
-		dto.FailResp(c, &resp, err.ParamError)
+		hlog.CtxErrorf(ctx, "request param invalid[%v]: %s-%s", bizErr, req.Platform, req.Model)
+		errorPublish(ssePublisher, "param error")
 		return
 	}
 
@@ -69,14 +113,11 @@ func StreamChat(ctx context.Context, c *app.RequestContext) {
 	respCh, errCh, stdErr := chatImpl.StreamChat(cancelCtx, chatContext)
 	if stdErr != nil {
 		hlog.CtxErrorf(cancelCtx, "chat fail: %v", stdErr)
-		dto.FailResp(c, &resp, err.InternalServerError)
+		errorPublish(ssePublisher, "internal error")
 		return
 	}
 
-	c.SetStatusCode(http.StatusOK)
-	ssePublisher := sse.NewStream(c)
 	timeout := time.NewTimer(time.Second * 20)
-
 	for {
 		select {
 		case <-timeout.C:
@@ -102,7 +143,7 @@ func StreamChat(ctx context.Context, c *app.RequestContext) {
 }
 
 func timeoutPublish(stream *sse.Stream) {
-	resp := &dto.ChatCreateResp{
+	resp := &dto.ChatStreamResp{
 		CommonResp: dto.CommonResp{
 			Success: false,
 			Code:    err.ResponseTimeoutError.Code(),
@@ -116,13 +157,14 @@ func timeoutPublish(stream *sse.Stream) {
 
 	stream.Publish(
 		&sse.Event{
-			Data: data,
+			Event: "error",
+			Data:  data,
 		},
 	)
 }
 
 func endPublish(stream *sse.Stream) {
-	resp := &dto.ChatCreateResp{
+	resp := &dto.ChatStreamResp{
 		CommonResp: dto.CommonResp{
 			Success: true,
 		},
@@ -134,13 +176,14 @@ func endPublish(stream *sse.Stream) {
 
 	stream.Publish(
 		&sse.Event{
-			Data: data,
+			Event: "message",
+			Data:  data,
 		},
 	)
 }
 
 func contentPublish(stream *sse.Stream, content string) error {
-	resp := &dto.ChatCreateResp{
+	resp := &dto.ChatStreamResp{
 		CommonResp: dto.CommonResp{
 			Success: true,
 		},
@@ -152,13 +195,14 @@ func contentPublish(stream *sse.Stream, content string) error {
 
 	return stream.Publish(
 		&sse.Event{
-			Data: data,
+			Event: "message",
+			Data:  data,
 		},
 	)
 }
 
 func errorPublish(stream *sse.Stream, content string) {
-	resp := &dto.ChatCreateResp{
+	resp := &dto.ChatStreamResp{
 		CommonResp: dto.CommonResp{
 			Success: false,
 			Code:    err.PlatformError.Code(),
@@ -173,7 +217,8 @@ func errorPublish(stream *sse.Stream, content string) {
 
 	stream.Publish(
 		&sse.Event{
-			Data: data,
+			Event: "error",
+			Data:  data,
 		},
 	)
 }

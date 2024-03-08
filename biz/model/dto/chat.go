@@ -2,7 +2,7 @@ package dto
 
 type Message struct {
 	Role    Role   `form:"role" json:"role" binding:"required"`
-	Content string `form:"content" json:"content" binding:"required,max=500"`
+	Content string `form:"content" json:"content" binding:"required,max=10000"`
 }
 
 type ChatCreateReq struct {
@@ -12,6 +12,10 @@ type ChatCreateReq struct {
 }
 
 type ChatCreateResp struct {
+	CommonResp
+}
+
+type ChatStreamResp struct {
 	CommonResp
 
 	CreatedAt int64  `json:"created_at,omitempty"`

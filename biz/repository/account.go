@@ -64,15 +64,17 @@ func UpdateAccountPassword(
 	return mysql.GetGormDB().
 		WithContext(ctx).
 		Transaction(func(tx *gorm.DB) error {
-			// update firstly can block the login request
+			// 首先进行更改密码的操作能阻塞其他设备的登录
 			if err := tx.Model(&po.Account{}).
 				Where("account_id", accountID).
 				Where("salt", oldSalt).
 				Where("password", oldPassword).
+				Where("status != ?", domain.AccountStatusInvalid).
 				Updates(
 					map[string]interface{}{
 						"salt":     newSalt,
 						"password": newPassword,
+						"status":   domain.AccountStatusValid, // 修改密码后激活账号的会话功能
 					}).
 				Error; err != nil {
 				hlog.CtxErrorf(ctx, "create account err: %v", err)

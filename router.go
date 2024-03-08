@@ -24,7 +24,8 @@ func customizedRegister(r *server.Hertz) {
 
 			chat := authGroup.Group("/chat", handler.ChatLimitMiddleware()...)
 			{
-				chat.POST("/stream", handler.StreamChat)
+				chat.POST("/create", handler.CreateChat)
+				chat.GET("/stream", handler.StreamChat)
 			}
 
 			index := authGroup.Group("/index")
