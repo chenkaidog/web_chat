@@ -121,10 +121,6 @@ function sendUserMessage() {
         finishAssistantResponse();
         return alert("消息不能为空!!!")
     }
-    if (userMessage.length > 10000) {
-        finishAssistantResponse();
-        return alert("消息长度不能大于10000个字符!!!")
-    }
 
     return parseChatReq(userMessage);
 }

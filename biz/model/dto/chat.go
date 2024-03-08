@@ -2,7 +2,7 @@ package dto
 
 type Message struct {
 	Role    Role   `form:"role" json:"role" binding:"required"`
-	Content string `form:"content" json:"content" binding:"required,max=10000"`
+	Content string `form:"content" json:"content" binding:"required"`
 }
 
 type ChatCreateReq struct {
