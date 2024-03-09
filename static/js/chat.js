@@ -105,9 +105,11 @@ document.getElementById("output").addEventListener('wheel', function (event) {
 
 function abortAiOutput() {
     try {
-        close(eventsource);
+        eventsource.close();
     } catch (error) {
 
+    } finally {
+        finishAssistantResponse();
     }
 }
 
