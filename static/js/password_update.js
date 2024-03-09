@@ -1,6 +1,8 @@
 document.getElementById('update_but').addEventListener('click', function () {
     var password = document.getElementById('password').value;
     var newPassword = document.getElementById('new_password').value;
+    var confirmPassword = document.getElementById('confirm_password').value;
+
     if (newPassword.trim() === '' || password.trim() === '') {
         alert("密码不能为空！");
         return;
@@ -8,6 +10,11 @@ document.getElementById('update_but').addEventListener('click', function () {
     if (newPassword.length < 8) {
         alert("密码长度不能小于8！");
         return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        alert("密码不一致！");
+        return
     }
 
     fetch(
@@ -23,24 +30,27 @@ document.getElementById('update_but').addEventListener('click', function () {
             })
         }
     )
-        .then(response => response.json())
-        .then(data => {
-            var code = data.code;
-            var success = data.success;
-            var msg = data.message;
 
-            if (success) {
-                alert("修改成功，即将重新登陆");
-                window.location.reload();
+        .then(response => {
+            if (response.ok) {
+                response.json().then(data => {
+                    var success = data.success;
+                    var msg = data.message;
+
+                    if (success) {
+                        alert("修改成功，即将重新登陆");
+                        window.location.reload();
+                    } else {
+                        alert(msg);
+                    }
+                })
             } else {
-                alert(msg);
+                response.text().then(errorText => {
+                    alert(`请求失败, ${response.status}: ${errorText}`);
+                    return finishAssistantResponse();
+                });
             }
         })
-        .catch(
-            error => {
-                console.log(error)
-            }
-        );
 });
 
 document.getElementById('logout_but').addEventListener('click', function () {
@@ -50,21 +60,23 @@ document.getElementById('logout_but').addEventListener('click', function () {
             method: 'POST'
         }
     )
-        .then(response => response.json())
-        .then(data => {
-            var code = data.code;
-            var success = data.success;
-            var msg = data.message;
+        .then(response => {
+            if (response.ok) {
+                response.json().then(data => {
+                    var success = data.success;
+                    var msg = data.message;
 
-            if (success) {
-                window.location.reload();
+                    if (success) {
+                        window.location.reload();
+                    } else {
+                        alert(msg);
+                    }
+                })
             } else {
-                alert(msg);
+                response.text().then(errorText => {
+                    alert(`请求失败, ${response.status}: ${errorText}`);
+                    return finishAssistantResponse();
+                });
             }
         })
-        .catch(
-            error => {
-                console.log(error)
-            }
-        );
 });

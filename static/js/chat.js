@@ -121,7 +121,7 @@ function sendUserMessage() {
     var userMessage = textarea.value
     if (userMessage.trim() === "") {
         finishAssistantResponse();
-        return alert("消息不能为空!!!")
+        return alert("消息不能为空!!!");
     }
 
     return parseChatReq(userMessage);
@@ -245,7 +245,7 @@ function sendMessage(messages, chatID) {
                     }
 
                     eventsource.onerror = function (error) {
-                        alert('请求失败');
+                        alert('请求失败: ', error);
                         this.close();
                         return finishAssistantResponse();
                     }
@@ -255,8 +255,10 @@ function sendMessage(messages, chatID) {
                     }
                 })
             } else {
-                alert('请求失败');
-                return finishAssistantResponse();
+                response.text().then(errorText => {
+                    alert(`请求失败, ${response.status}: ${errorText}`);
+                    return finishAssistantResponse();
+                });
             }
         });
 }

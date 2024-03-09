@@ -114,11 +114,6 @@ func GetAccountByUsername(ctx context.Context, username string) (*domain.Account
 }
 
 func GetAccountByAccountID(ctx context.Context, accountID string) (*domain.Account, error) {
-	account := getAccountFromCache(ctx, accountID)
-	if account != nil {
-		return account, nil
-	}
-
 	var result po.Account
 	if err := mysql.GetGormDB().
 		WithContext(ctx).
@@ -136,7 +131,7 @@ func GetAccountByAccountID(ctx context.Context, accountID string) (*domain.Accou
 		return nil, err
 	}
 
-	account = &domain.Account{
+	account := &domain.Account{
 		AccountID:      result.AccountID,
 		Username:       result.Username,
 		Salt:           result.Salt,
@@ -144,8 +139,6 @@ func GetAccountByAccountID(ctx context.Context, accountID string) (*domain.Accou
 		Status:         result.Status,
 		ExpirationDate: result.ExpirationTime,
 	}
-
-	_ = setAccountInCache(ctx, account)
 
 	return account, nil
 }
@@ -161,56 +154,56 @@ func deleteAccountInCache(ctx context.Context, accountID string) error {
 	return nil
 }
 
-func getAccountFromCache(ctx context.Context, accountID string) *domain.Account {
-	mapper, err := redis.GetRedisClient().HGetAll(ctx, accountInfoKey(accountID)).Result()
-	if err != nil {
-		hlog.CtxErrorf(ctx, "hgetall err: %v", err)
-		return nil
-	}
+// func getAccountFromCache(ctx context.Context, accountID string) *domain.Account {
+// 	mapper, err := redis.GetRedisClient().HGetAll(ctx, accountInfoKey(accountID)).Result()
+// 	if err != nil {
+// 		hlog.CtxErrorf(ctx, "hgetall err: %v", err)
+// 		return nil
+// 	}
 
-	accountID, ok1 := mapper["account_id"]
-	username, ok2 := mapper["username"]
-	salt, ok3 := mapper["salt"]
-	password, ok4 := mapper["password"]
-	status, ok5 := mapper["status"]
-	if !(ok1 && ok2 && ok3 && ok4 && ok5) {
-		return nil
-	}
+// 	accountID, ok1 := mapper["account_id"]
+// 	username, ok2 := mapper["username"]
+// 	salt, ok3 := mapper["salt"]
+// 	password, ok4 := mapper["password"]
+// 	status, ok5 := mapper["status"]
+// 	if !(ok1 && ok2 && ok3 && ok4 && ok5) {
+// 		return nil
+// 	}
 
-	expirationDate, err := time.Parse("2006-01-02", mapper["expiration_date"])
-	if err != nil {
-		return nil
-	}
+// 	expirationDate, err := time.Parse("2006-01-02", mapper["expiration_date"])
+// 	if err != nil {
+// 		return nil
+// 	}
 
-	return &domain.Account{
-		AccountID:      accountID,
-		Username:       username,
-		Salt:           salt,
-		Password:       password,
-		Status:         status,
-		ExpirationDate: expirationDate,
-	}
-}
+// 	return &domain.Account{
+// 		AccountID:      accountID,
+// 		Username:       username,
+// 		Salt:           salt,
+// 		Password:       password,
+// 		Status:         status,
+// 		ExpirationDate: expirationDate,
+// 	}
+// }
 
-func setAccountInCache(ctx context.Context, account *domain.Account) error {
-	_, err := redis.GetRedisClient().
-		HSet(
-			ctx, accountInfoKey(account.AccountID),
-			"account_id", account.AccountID,
-			"username", account.Username,
-			"salt", account.Salt,
-			"password", account.Password,
-			"status", account.Status,
-			"expiration_date", account.ExpirationDate.Format("2006-01-02"),
-		).
-		Result()
-	if err != nil {
-		hlog.CtxErrorf(ctx, "hset account err: %v", err)
-		return err
-	}
+// func setAccountInCache(ctx context.Context, account *domain.Account) error {
+// 	_, err := redis.GetRedisClient().
+// 		HSet(
+// 			ctx, accountInfoKey(account.AccountID),
+// 			"account_id", account.AccountID,
+// 			"username", account.Username,
+// 			"salt", account.Salt,
+// 			"password", account.Password,
+// 			"status", account.Status,
+// 			"expiration_date", account.ExpirationDate.Format("2006-01-02"),
+// 		).
+// 		Result()
+// 	if err != nil {
+// 		hlog.CtxErrorf(ctx, "hset account err: %v", err)
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 func AppendSessionInAccount(ctx context.Context, accountID, sessionID string) error {
 	sessionList, err := GetSessionList(ctx, accountID)
