@@ -1,18 +1,16 @@
+const platformBaidu = "baidu";
+const platformOpenai = "openai";
+const modelErine4 = "erine-4";
+const modelGPT3 = "gpt-3.5";
+const modelGPT4 = "gpt-4";
 
-const chatTypeSingle = "single"
-const chatTypeRound = "round"
+const roleUser = "user";
+const roleAssistant = "assistant";
 
-const platformBaidu = "baidu"
-const platformOpenai = "openai"
-const modelErine4 = "erine-4"
-const modelGPT3 = "gpt-3.5"
-const modelGPT4 = "gpt-4"
+const pageStageUserInput = "user_inout";
+const pageStageAssistantOutput = "ai_output";
 
-const roleUser = "user"
-const roleAssistant = "assistant"
-
-const pageStageUserInput = "user_inout"
-const pageStageAssistantOutput = "ai_output"
+const chatRecordItem = 'chat_record';
 
 var pageStage = pageStageUserInput;
 var fixOutputBoardToBottom = true;
@@ -34,30 +32,42 @@ var md = window.markdownit({
     }
 });
 
+var assistantRespContent = '';
+var userQuestionContent = '';
+
 var chatRecord = [];
 const recordMaxSize = 10;
 
-function recordUserMsg(msg) {
-    chatRecord.push([msg]);
-    while (chatRecord.length > recordMaxSize) {
-        chatRecord.shift();
+// 初始化对话记录
+function initChatRecord() {
+    document.getElementById("msg_input").readOnly = true;
+    chatRecord = JSON.parse(localStorage.getItem(chatRecordItem));
+    if (chatRecord == null) {
+        chatRecord = []
     }
+    var chatRecordHtml = '';
+    for (var i = 0; i < chatRecord.length; i++) {
+        if (chatRecord[i].length != 2) {
+            continue;
+        }
+
+        chatRecordHtml += `<div><label><b>You</b></label><br><p>${renderInput(chatRecord[i][0])}</p><br></div>`
+        chatRecordHtml += `<div><label><b>AI</b></label><br>${md.render(chatRecord[i][1])}<br></div>`
+    }
+
+    var outputDiv = document.getElementById("output");
+    outputDiv.innerHTML = chatRecordHtml;
+    outputDiv.scrollTop = outputDiv.scrollHeight;
+
+    document.getElementById("msg_input").readOnly = false;
 }
 
-function recordAssistantMsg(msg) {
-    if (msg.length <= 0) {
-        return;
-    }
-    var latestRecord = chatRecord[chatRecord.length - 1];
-    if (latestRecord.length == 1) {
-        latestRecord.push(msg);
-    } else if (latestRecord.length == 2) {
-        latestRecord[1] = msg;
-    }
+initChatRecord();
 
-    while (chatRecord.length > recordMaxSize) {
-        chatRecord.shift();
-    }
+
+function recordMessages(userMsg, assistantMsg) {
+    chatRecord.push([userMsg, assistantMsg]);
+    localStorage.setItem(chatRecordItem, JSON.stringify(chatRecord));
 }
 
 // auto height of textarea
@@ -76,7 +86,7 @@ function autoResize() {
 
 // 监听Ctrl+回车事件
 document.getElementById("msg_input").addEventListener('keydown', function (event) {
-    if (event.ctrlKey && event.keyCode === 13) {
+    if (event.ctrlKey && event.key === "Enter") {
         if (pageStage === pageStageUserInput) {
             sendUserMessage();
             return;
@@ -87,12 +97,10 @@ document.getElementById("msg_input").addEventListener('keydown', function (event
 // 监听发送按钮点击事件
 document.getElementById("send_but").addEventListener('click', function () {
     if (pageStage === pageStageUserInput) {
-        sendUserMessage();
-        return;
+        return sendUserMessage();
     }
     if (pageStage === pageStageAssistantOutput) {
-        abortAiOutput();
-        return;
+        return abortAiOutput();
     }
 });
 
@@ -107,8 +115,9 @@ function abortAiOutput() {
     try {
         eventsource.close();
     } catch (error) {
-
+        console.log('event source close  err:', error);
     } finally {
+        recordMessages(userQuestionContent, assistantRespContent);
         finishAssistantResponse();
     }
 }
@@ -134,46 +143,39 @@ function getChatType() {
 function parseChatReq(msg) {
     var chatID = new Date().getTime().toString();
 
+    // 将用户问题添加到页面上
     startGenerateResp(msg, chatID);
 
-    recordUserMsg(msg);
-
-    if (getChatType() === chatTypeSingle) {
-        return sendMessage(
-            [{
-                role: roleUser,
-                content: msg
-            }],
-            chatID)
-    }
-
-    if (getChatType() === chatTypeRound) {
-        var messages = [];
-        for (var i = 0; i < chatRecord.length; i++) {
-            var record = chatRecord[i];
-            if (record.length != 2) {
-                continue;
-            }
-            messages.push(
-                {
-                    role: roleUser,
-                    content: record[0]
-                },
-                {
-                    role: roleAssistant,
-                    content: record[1]
-                },
-            )
+    var messages = [];
+    for (var i = chatRecord.length - 1; i >= 0; i--) {
+        var record = chatRecord[i];
+        if (record.length != 2) {
+            continue;
         }
 
-        messages.push({
-            role: roleUser,
-            content: msg
-        })
-        return sendMessage(messages, chatID);
+        // 从后往前添加对话记录
+        messages.unshift(
+            {
+                role: roleUser,
+                content: record[0]
+            },
+            {
+                role: roleAssistant,
+                content: record[1]
+            },
+        )
+
+        if (messages.length >= recordMaxSize) {
+            break;
+        }
     }
 
-    return;
+    var userMsg = {
+        role: roleUser,
+        content: msg
+    }
+
+    return sendMessage(messages, userMsg, chatID);
 }
 
 function getSelectedModel() {
@@ -199,15 +201,17 @@ function getSelectedModel() {
     }
 }
 
-function sendMessage(messages, chatID) {
+function sendMessage(messagesContext, userMsg, chatID) {
+    messagesContext.push(userMsg);
     var selectedModel = getSelectedModel()
     var chatReq = {
         platform: selectedModel.platform,
         model: selectedModel.model,
-        messages: messages
+        messages: messagesContext
     }
 
-    var contentResp = '';
+    userQuestionContent = userMsg.content;
+    assistantRespContent = '';
 
     fetch(
         '/chat/create',
@@ -237,11 +241,12 @@ function sendMessage(messages, chatID) {
 
                         if (message.is_end) {
                             this.close();
+                            recordMessages(userQuestionContent, assistantRespContent);
                             return finishAssistantResponse();
                         }
 
-                        contentResp += message.content
-                        renderResp(contentResp, chatID);
+                        assistantRespContent += message.content
+                        renderResp(assistantRespContent, chatID);
                     }
 
                     eventsource.onerror = function (error) {
@@ -273,7 +278,7 @@ function startGenerateResp(textarea, respDivID) {
     var userContentDiv = document.createElement('div');
     userContentDiv.setAttribute('class', 'user_content')
     userContentDiv.innerHTML = `<label><b>You</b></label><br><p>${renderInput(textarea)}</p><br>`
-    outputDiv.appendChild(userContentDiv)
+    outputDiv.appendChild(userContentDiv);
 
     var respDiv = document.createElement('div');
     respDiv.setAttribute('id', respDivID)
@@ -296,8 +301,6 @@ function renderInput(text) {
 }
 
 function renderResp(content, respDivID) {
-    recordAssistantMsg(content);
-
     var htmlContent = md.render(content)
     var respContent = `<label><b>AI</b></label><br>${htmlContent}<br>`
     document.getElementById(respDivID).innerHTML = respContent;

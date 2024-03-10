@@ -7,17 +7,19 @@ document.getElementById("readme_but").addEventListener('click', function () {
     this.style.backgroundColor = '#999999';
     document.getElementById("content_frame").src = '/index/readme';
 })
- 
-document.getElementById("single_chat_but").addEventListener('click', function () {
+
+document.getElementById("chat_record_but").addEventListener('click', function () {
     markMenuButton();
     this.style.backgroundColor = '#999999';
-    document.getElementById("content_frame").src = '/index/chat?chat_type=single';
+    document.getElementById("content_frame").src = '/index/chat';
 })
 
-document.getElementById("new_chat_but").addEventListener('click', function () {
-    markMenuButton();
-    this.style.backgroundColor = '#999999';
-    document.getElementById("content_frame").src = '/index/chat?chat_type=round';
+document.getElementById("delete_chat_but").addEventListener('click', function () {
+    var confirmResponse = confirm("删除后数据不可恢复");
+    if (confirmResponse == true) {
+        localStorage.removeItem("chat_record");
+        document.getElementById("content_frame").src = '/index/chat';
+    }
 })
 
 function markMenuButton() {

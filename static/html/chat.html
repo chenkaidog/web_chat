@@ -127,23 +127,10 @@
             <option value="{[{ .Value }]}">{[{ .Label }]}</option>
             {[{ end }]}
         </select>
-        <label id="chat_type_label" value="{[{ .ChatType }]}"></label>
     </div>
 
     <div id="interaction">
-        <div id="output">
-            <!-- <div class="user_content">
-                <label><b>you</b></label><br>
-                hello
-            </div>
-            <br>
-            <div class="assistant_content">
-                <label><b>AI</b></label><br>
-                hi, what can I do for you?
-            </div>
-            <br> -->
-
-        </div>
+        <div id="output"> </div>
 
         <div id="input">
             <textarea type="text" id="msg_input" placeholder="Message..." oninput=autoResize()></textarea>
