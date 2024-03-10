@@ -22,7 +22,7 @@ ENV log_level=info\
     
 RUN mkdir /log \
     && go env -w GO111MODULE=on \
-    # && go env -w GOPROXY=https://goproxy.cn,direct \
+    && go env -w GOPROXY=https://goproxy.cn,direct \
     && go mod tidy \
     && go build -o main
 

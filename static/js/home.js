@@ -4,13 +4,13 @@ document.getElementById("account_btn").addEventListener('click', function () {
 
 document.getElementById("readme_but").addEventListener('click', function () {
     markMenuButton();
-    this.style.backgroundColor = '#999999';
+    this.classList.add('active');
     document.getElementById("content_frame").src = '/index/readme';
 })
 
 document.getElementById("chat_record_but").addEventListener('click', function () {
     markMenuButton();
-    this.style.backgroundColor = '#999999';
+    this.classList.add('active');
     document.getElementById("content_frame").src = '/index/chat';
 })
 
@@ -26,6 +26,6 @@ function markMenuButton() {
     var elems = document.getElementsByClassName('menu_btn');
 
     Array.from(elems).forEach(function (elem) {
-        elem.style.backgroundColor = '#dddddddd';
+        elem.classList.remove('active')
     });
 }
