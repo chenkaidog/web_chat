@@ -104,6 +104,20 @@ document.getElementById("send_but").addEventListener('click', function () {
     }
 });
 
+// 删除对话事件
+document.getElementById("delete_but").addEventListener('click', function () {
+    localStorage.removeItem("chat_record");
+    var outputDiv = document.getElementById("output");
+    var sp = document.createElement('div');
+    sp.setAttribute("class", "separator");
+    var hr = document.createElement('hr');
+    var span = document.createElement('span');
+    span.innerHTML = "历史对话已清空";
+    sp.appendChild(hr);
+    sp.appendChild(span);
+    outputDiv.appendChild(sp);
+})
+
 document.getElementById("output").addEventListener('wheel', function (event) {
     if (event.deltaY < 0) {
         fixOutputBoardToBottom = false;

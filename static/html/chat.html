@@ -94,7 +94,7 @@
             border: none;
             position: absolute;
             left: 0;
-            right: 40px;
+            right: 85px;
             height: 100%;
             display: inline-block;
             resize: none;
@@ -102,19 +102,50 @@
             font-size: 18px;
         }
 
-        #send_but {
+        #chat_control {
             border: none;
-            font-size: 20px;
             position: absolute;
+            display: flex;
             bottom: 0;
             right: 0;
             height: 30px;
-            width: 30px;
+            width: 80px;
             margin: 5px;
         }
 
-        #send_but:hover {
+        .chat_button {
+            border: none;
+            height: 30px;
+            width: 30px;
+            font-size: 20px;
+            margin: 5px;
+            text-align: center;
+            background-color: transparent;
+        }
+
+        .chat_button:hover {
             cursor: pointer;
+            font-size: 22px;
+        }
+
+        .separator {
+            position: relative;
+            height: 20px;
+        }
+
+        .separator hr {
+            border: none;
+            border-top: 1px solid black;
+        }
+
+        .separator span {
+            position: absolute;
+            top: -0.5em;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            padding: 0 0.5em;
+            font-size: 15px;
         }
     </style>
 </head>
@@ -134,7 +165,10 @@
 
         <div id="input">
             <textarea type="text" id="msg_input" placeholder="Message..." oninput=autoResize()></textarea>
-            <button id="send_but" title="ctrl + &#8629">⬆️</button>
+            <div id="chat_control">
+                <button class="chat_button" id="send_but" title="ctrl + &#8629">⬆️</button>
+                <button class="chat_button" id="delete_but" title="清空对话">🗑️</button>
+            </div>
         </div>
     </div>
 

@@ -14,12 +14,10 @@ document.getElementById("chat_record_but").addEventListener('click', function ()
     document.getElementById("content_frame").src = '/index/chat';
 })
 
-document.getElementById("delete_chat_but").addEventListener('click', function () {
-    var confirmResponse = confirm("删除后数据不可恢复");
-    if (confirmResponse == true) {
-        localStorage.removeItem("chat_record");
-        document.getElementById("content_frame").src = '/index/chat';
-    }
+document.getElementById("create_chat_but").addEventListener('click', function () {
+    markMenuButton();
+    this.classList.add('active');
+    alert("功能开发中");
 })
 
 function markMenuButton() {

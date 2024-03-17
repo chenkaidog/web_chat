@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	modelGPT4 = "gpt-4"
+	modelGPT4 = "gpt-4-turbo-preview"
 	modelGPT3 = "gpt-3.5-turbo"
 )
 
