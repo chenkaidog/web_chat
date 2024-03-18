@@ -62,7 +62,7 @@
             /* 固定在页面底部 */
             height: auto;
             /* 可根据内容自适应高度 */
-            width: 60%;
+            width: 100%;
             margin: 0 auto;
             /* 水平居中 */
         }
@@ -75,15 +75,22 @@
             overflow-x: hidden;
         }
 
+        #output .content {
+            width: 60%;
+            overflow-x: hidden;
+            margin: 0 auto;
+        }
+
         #input {
+            background-color: white;
             border-radius: 10px;
             position: absolute;
+            left: 50%;
             bottom: 5%;
-            width: 100%;
+            transform: translate(-50%);
+            width: 60%;
             min-height: 40px;
             max-height: 60%;
-            font-size: 16px;
-            display: inline-block;
             border: 1px solid black;
             box-sizing: border-box;
             overflow-y: hidden;
@@ -98,7 +105,7 @@
             height: 100%;
             display: inline-block;
             resize: none;
-            /* overflow-y: hidden; */
+
             font-size: 18px;
         }
 
@@ -129,6 +136,8 @@
         }
 
         .separator {
+            width: 60%;
+            margin: 0 auto;
             position: relative;
             height: 20px;
         }

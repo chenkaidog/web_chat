@@ -51,8 +51,8 @@ function initChatRecord() {
             continue;
         }
 
-        chatRecordHtml += `<div><label><b>You</b></label><br><p>${renderInput(chatRecord[i][0])}</p><br></div>`
-        chatRecordHtml += `<div><label><b>AI</b></label><br>${md.render(chatRecord[i][1])}<br></div>`
+        chatRecordHtml += `<div class="content"><label><b>You</b></label><br><p>${renderInput(chatRecord[i][0])}</p><br></div>`
+        chatRecordHtml += `<div class="content"><label><b>AI</b></label><br>${md.render(chatRecord[i][1])}<br></div>`
     }
 
     var outputDiv = document.getElementById("output");
@@ -63,7 +63,6 @@ function initChatRecord() {
 }
 
 initChatRecord();
-
 
 function recordMessages(userMsg, assistantMsg) {
     chatRecord.push([userMsg, assistantMsg]);
@@ -116,6 +115,7 @@ document.getElementById("delete_but").addEventListener('click', function () {
     sp.appendChild(hr);
     sp.appendChild(span);
     outputDiv.appendChild(sp);
+    outputDiv.scrollTop = outputDiv.scrollHeight;
 })
 
 document.getElementById("output").addEventListener('wheel', function (event) {
@@ -290,13 +290,13 @@ function startGenerateResp(textarea, respDivID) {
     var outputDiv = document.getElementById("output");
 
     var userContentDiv = document.createElement('div');
-    userContentDiv.setAttribute('class', 'user_content')
+    userContentDiv.setAttribute('class', 'content')
     userContentDiv.innerHTML = `<label><b>You</b></label><br><p>${renderInput(textarea)}</p><br>`
     outputDiv.appendChild(userContentDiv);
 
     var respDiv = document.createElement('div');
     respDiv.setAttribute('id', respDivID)
-    respDiv.setAttribute('class', "assistant_content")
+    respDiv.setAttribute('class', "content")
     outputDiv.appendChild(respDiv);
 
     fixOutputBoardToBottom = true;
